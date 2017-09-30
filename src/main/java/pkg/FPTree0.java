@@ -84,8 +84,8 @@ public class FPTree0{
             System.out.println("Sorted list: "+list.toString());
             addToFPTree(list.get(0).getKey(), list, root);
 
-            sortNodeLinks();
         }
+        sortNodeLinks();
     }
 
     /**
