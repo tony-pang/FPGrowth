@@ -11,26 +11,8 @@ public class FPTreeTest{
         String path4 = "test.tsv";
         long startTime = System.currentTimeMillis();
         FPTree fpTree = new FPTree(path4);
-//        fpTree.printFile();
-//        System.out.println("Time : " + timeDifference(startTime));
 
-        fpTree.printFrequencies();
-        System.out.println(fpTree.getHeaderOrdered());
         System.out.println("Time : " + timeDifference(startTime));
-
-        fpTree.printTree();
-        System.out.println(fpTree.getHeaderOrdered().toString());
-//
-//        fpTree.printTree2();
-//        System.out.println("Time : " + timeDifference(startTime));
-//
-//        for(Map.Entry<Integer, FPTree0.Node> entry : fpTree.getNodeLinks().entrySet()){
-//            System.out.println("header count : " + entry.getKey() + " " + entry.getValue().headerCount);
-//        }
-//
-//        fpTree.searchFrequentPairs();
-//
-//        System.out.println("Time : " + timeDifference(startTime));
 
     }
     private long timeDifference(long startTime){

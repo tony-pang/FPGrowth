@@ -1,103 +1,95 @@
 package pkg;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-import lombok.extern.log4j.Log4j2;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 
-@Log4j2
-@SuppressWarnings({"usued","Duplicates"})
+@SuppressWarnings("unused")
 public class FPTree{
     /**
      * ROOT node
      */
-    @Getter
     private final Node root = new Node(null, 0, null);
-    /**
-     * Start time constant
-     */
-    long start;
     /**
      * Thresh hold index
      */
-    @Getter
     private int threshold = -1;
     /**
      * this file contains raw info
      */
-    @Getter
     private List<int[]> file;
-    @Getter
     private Map<Integer, Integer> frequency;
     /**
      * both are reference based, modifying one will change the other in memory
      */
-    @Getter
     private Map<Integer, HeaderNode> header;//for O(1) access
-    @Getter
     private List<HeaderNode> headerOrdered;//for sorting and all reading MUST follow this order
 
+    private List<List<Pair>> conditionalBranch;
+
+    /**
+     * FINAL RESULT OF FREQUENT PAIRS
+     */
+    private List<FrequentPair> frequentPairList;
     /**
      * constructor load from file, determine the minimum support
-     * @param path
+     * @param path path
      */
     FPTree(String path){
-        start = System.currentTimeMillis();
-        readFileAndCreateFrenquecyMap(path);
+        readFileAndCreateFrequencyMap(path);
         createHeaderMap();
-        filterDataByThresholdAndAddTOfpTree();
+        filterDataByThresholdAndAddToFpTree();
+        processData();
     }
 
-    FPTree(List<List<Node>> conditional, int threshold){
+    private FPTree(List<List<Pair>> conditionalBranch, int threshold, Map<Integer, Integer> frequency){
+        this.conditionalBranch = conditionalBranch;
+        this.frequency = frequency;
+        this.threshold = threshold;
 
+        createConditionalHeaderMap();
+        addToFpTree();
     }
 
 
     /**
-     * @param path
+     * @param path path
      */
-    private void readFileAndCreateFrenquecyMap(String path){
+    private void readFileAndCreateFrequencyMap(String path){
 
         ClassLoader classLoader = getClass().getClassLoader();
-        try(
-                FileReader fileReader = new FileReader(new File(classLoader.getResource(path).getFile()));
-                BufferedReader bufferedReader = new BufferedReader(fileReader)
-        ){
-            String line;
-            String tabDelim[];
-            file = new ArrayList<>();
-            frequency = new HashMap<>();
-            while((line=bufferedReader.readLine())!=null){
-                if(threshold == -1) threshold = Integer.parseInt(line);//first line contains only the support
-                else{
-                    tabDelim = line.split("\\t");
-                    String commaDelim[];
-                    for(String s : tabDelim){
-                        commaDelim = s.split(",");
-                        int len = commaDelim.length;
-                        int[] parsedToInt = new int[len - 1];
-                        int temp;
-                        for(int i = 1; i < len; ++i){
-                            temp = Integer.parseInt(commaDelim[i]);
-                            parsedToInt[i - 1] = temp;
-                            //increaseCounter of frequency list
-                            if(frequency.containsKey(temp)) frequency.put(temp, frequency.get(temp)+1);
-                            else frequency.put(temp,1);
+        try(FileReader fileReader = new FileReader(new File(classLoader.getResource(path).getFile()))){
+            try(BufferedReader bufferedReader = new BufferedReader(fileReader)){
+                String line;
+                String tabDelim[];
+                file = new ArrayList<>();
+                frequency = new HashMap<>();
+                while((line = bufferedReader.readLine()) != null){
+                    if(threshold == -1) threshold = Integer.parseInt(line);//first line contains only the support
+                    else{
+                        tabDelim = line.split("\\t");
+                        String commaDelim[];
+                        for(String s : tabDelim){
+                            commaDelim = s.split(",");
+                            int len = commaDelim.length;
+                            int[] parsedToInt = new int[len - 1];
+                            int temp;
+                            for(int i = 1; i < len; ++i){
+                                temp = Integer.parseInt(commaDelim[i]);
+                                parsedToInt[i - 1] = temp;
+                                //increaseCounter of frequency list
+                                if(frequency.containsKey(temp)) frequency.put(temp, frequency.get(temp) + 1);
+                                else frequency.put(temp, 1);
+                            }
+                            file.add(parsedToInt);//Save to raw : file
                         }
-                        file.add(parsedToInt);//Save to raw : file
                     }
                 }
             }
-            System.out.println("FILE LOADING AND FREQUENCY COUNTIN TIME:" + (System.currentTimeMillis() - start));
         }catch(IOException | NullPointerException | NumberFormatException e){
-            log.error(e.getMessage(),e);
+            System.err.println(e.getMessage());
         }
     }
 
@@ -115,13 +107,12 @@ public class FPTree{
                 headerOrdered.add(headerNode);
             }
         Collections.sort(headerOrdered);
-        System.out.println("HEADER MAP CREATION TIME:" + (System.currentTimeMillis() - start));
     }
 
     /**
      * Remove the low frequency item from data set
      */
-    private void filterDataByThresholdAndAddTOfpTree(){
+    private void filterDataByThresholdAndAddToFpTree(){
         for(int[] line : file){
             List<Pair> list = new LinkedList<>();
             for(int i : line){
@@ -129,14 +120,85 @@ public class FPTree{
                 if(freq >= threshold) list.add(new Pair(i, freq));
             }
             Collections.sort(list);
-
-            System.out.println("Sorted list: " + list.toString());
-
             root.add(0, list, 1);
         }
     }
 
+    private void processData(){
+        /*
+         * instantiate the FINAL output result
+         */
+        frequentPairList = new LinkedList<>();
 
+        List<Pair> branch;
+        Node tempOut, tempIn;
+        for(HeaderNode headerNode : headerOrdered){
+            conditionalBranch = new LinkedList<>();
+            tempOut = headerNode.last;
+            while(tempOut != null){
+                branch = new LinkedList<>();
+                tempIn = tempOut.parent;
+                int tempSupport = tempOut.count;
+                while(tempIn != null){
+                    branch.add(0, new Pair(tempIn.id, tempSupport));
+                    tempIn = tempIn.parent;
+                }
+                if(branch.size() != 0)
+                    conditionalBranch.add(branch); //no term add -> this node is the head of the chain
+                tempOut = tempOut.prevSelf;
+            }
+            buildConditionalFPTree(headerNode.id, headerNode.count);
+        }
+        Collections.sort(frequentPairList);
+        System.out.println(frequentPairList);
+    }
+
+    private void buildConditionalFPTree(int id, int count){
+        FPTree conditionalTree = new FPTree(conditionalBranch, threshold, frequency);
+        frequentPairList.addAll(conditionalTree.returnFrequentPair(id, count));
+    }
+
+    /**
+     * create an empty header map for incoming conditional branches
+     */
+    private void createConditionalHeaderMap(){
+        header = new HashMap<>();
+        for(Map.Entry<Integer, Integer> entry : frequency.entrySet())
+            header.put(entry.getKey(), new HeaderNode(entry.getKey(), 0));
+    }
+
+    /**
+     *
+     */
+    private void addToFpTree(){
+        for(List<Pair> pairs : conditionalBranch) root.add(0, pairs, pairs.get(0).freq);
+
+        for(Map.Entry<Integer, HeaderNode> entry : header.entrySet()){
+            HeaderNode headerNode = entry.getValue();
+            Node last = headerNode.last;
+            int count = 0;
+            while(last != null){
+                count += last.count;
+                last = last.prevSelf;
+            }
+            headerNode.count = count;
+        }
+    }
+
+
+    private List<FrequentPair> returnFrequentPair(int id, int idCount){
+        List<FrequentPair> ret = new LinkedList<>();
+        FrequentPair pair;
+        int freq;
+        for(Map.Entry<Integer, HeaderNode> node : header.entrySet()){
+            freq = node.getValue().count;
+            if(freq >= threshold){
+                pair = new FrequentPair(id, node.getKey(), freq > idCount ? idCount : freq);
+                ret.add(pair);
+            }
+        }
+        return ret;
+    }
     /* -----------------------------------------------------------------------------------------------------------------
      * Print functions
      * -----------------------------------------------------------------------------------------------------------------
@@ -167,7 +229,7 @@ public class FPTree{
     void printTree(){
         for(HeaderNode node : headerOrdered){
             System.out.println(node.toString());
-            Node tempTail = node.getLast();
+            Node tempTail = node.last;
             List<Node> listToPrint;
             Node tempParent;
             while(tempTail != null){
@@ -178,7 +240,7 @@ public class FPTree{
                     tempParent = tempParent.parent;
                 }
                 for(int i = listToPrint.size() - 1; i >= 0; --i)
-                    System.out.print(listToPrint.get(i).getId() + "(" + listToPrint.get(i).getCount() + ")"
+                    System.out.print(listToPrint.get(i).id + "(" + listToPrint.get(i).count + ")"
                     );
                 tempTail = tempTail.prevSelf;
                 System.out.println();
@@ -189,42 +251,34 @@ public class FPTree{
     /**
      * FP-Tree node
      */
-    @ToString(exclude = {"parent", "prevSelf", "children"})
     class Node{
         /**
          * Node id
          */
-        @Getter
-        private final Integer id;
+        final Integer id;
+        /**
+         *
+         */
+        final Node parent;
         /**
          * counter
          */
-        @Getter
-        @Setter
-        private int count = 0;
+        int count = 0;
         /**
          *
          */
-        @Getter
-        private final Node parent;
+        Node prevSelf = null;
         /**
          *
          */
-        @Setter
-        @Getter
-        private Node prevSelf = null;
-        /**
-         *
-         */
-        @Getter
-        private Map<Integer, Node> children = null;
+        Map<Integer, Node> children = null;
 
         /**
          * constructor
          *
-         * @param id
-         * @param count
-         * @param parent
+         * @param id id
+         * @param count count
+         * @param parent parent
          */
         Node(Integer id, int count, Node parent){
             this.id = id;
@@ -234,7 +288,7 @@ public class FPTree{
 
         void add(int index, List<Pair> list, int count){
             if(children == null) children = new HashMap<>();
-            Node child = children.get(list.get(index).getName());
+            Node child = children.get(list.get(index).name);
             if(child != null){//child found in children
                 child.count += count;
                 ++index;
@@ -244,7 +298,7 @@ public class FPTree{
 
         private void addNewChild(int index, List<Pair> list, int count){
             if(children == null) children = new HashMap<>();
-            int item = list.get(index).getName();
+            int item = list.get(index).name;
             Node child = new Node(item, count, id == null ? null : this);
             child.addToNodeLinks();
             children.put(item, child);
@@ -256,8 +310,7 @@ public class FPTree{
          * Add to node link list (header map)
          */
         private void addToNodeLinks(){
-
-            prevSelf = header.get(id).getLast();
+            prevSelf = header.get(id).last;
             header.get(id).setLast(this);
         }
     }
@@ -266,39 +319,80 @@ public class FPTree{
      * new implementation of header
      * keep
      */
-    @RequiredArgsConstructor
-    @ToString(exclude = "last")
     class HeaderNode implements Comparable<HeaderNode>{
-        @Getter
-        private final int id;
-        /**
-         *
-         */
-        @Getter
-        private final int count;
-        @Getter
-        @Setter
-        private Node last;
+        final int id;
+
+        int count;
+        Node last;
+
+        HeaderNode(int id, int count){
+            this.id = id;
+            this.count = count;
+        }
 
         @Override
         public int compareTo(HeaderNode o){
             if(o.count == this.count) return this.id - o.id;
             else return this.count - o.count;
         }
+
+        void setLast(Node last){
+            this.last = last;
+        }
+
+        @Override
+        public String toString(){
+            return "id: " + id + ", count: " + count + "\n";
+        }
     }
 
-    @Getter
-    @Setter
-    @ToString
-    @RequiredArgsConstructor
+
     class Pair implements Comparable<Pair>{
-        private final int name;
-        private final int freq;
+        final int name;
+        final int freq;
+
+        Pair(int name, int freq){
+            this.name = name;
+            this.freq = freq;
+        }
+
+        public String toString(){
+            return "Name: " + name + "-Frequency: " + freq + "\n";
+        }
 
         @Override
         public int compareTo(Pair o){
             if(o.freq == this.freq) return this.name - o.name;
             else return o.freq - this.freq;
+        }
+    }
+
+    /**
+     * The wrapper for the final individual results
+     */
+    class FrequentPair implements Comparable<FrequentPair>{
+        final int a;
+        final int b;
+        final int freq;
+
+        FrequentPair(int a, int b, int freq){
+            this.a = a;
+            this.b = b;
+            this.freq = freq;
+        }
+
+        public String toString(){
+            return a + "-" + b + "->" + freq + "\n";
+        }
+
+        @Override
+        public int compareTo(FrequentPair o){
+            if(o.freq != this.freq){
+                return o.freq - this.freq;
+            }else{
+                if(o.a != this.a) return this.a - o.a;
+                else return this.b - o.b;
+            }
         }
     }
 
