@@ -53,6 +53,15 @@ public class FPTree{
         addToFpTree();
     }
 
+    public static void main(String[] args){
+        String path1 = "Sample_1.txt";
+        String path2 = "Sample_2.txt";
+        String path3 = "Sample_3.txt";
+        String path4 = "test.tsv";
+        long startTime = System.currentTimeMillis();
+        FPTree fpTree = new FPTree(path3);
+        System.out.println("Time : " + (System.currentTimeMillis() - startTime));
+    }
 
     /**
      * @param path path
