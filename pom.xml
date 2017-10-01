@@ -35,8 +35,8 @@
             <artifactId>log4j-core</artifactId>
             <version>${log4j-api.version}</version>
         </dependency>
-
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -49,5 +49,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

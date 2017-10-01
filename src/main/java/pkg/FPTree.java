@@ -42,7 +42,7 @@ public class FPTree{
     @Getter
     private Map<Integer, HeaderNode> header;//for O(1) access
     @Getter
-    private List<HeaderNode> headerOrder;//for sorting and all reading MUST follow this order
+    private List<HeaderNode> headerOrdered;//for sorting and all reading MUST follow this order
 
     /**
      * constructor load from file, determine the minimum support
@@ -53,6 +53,10 @@ public class FPTree{
         readFileAndCreateFrenquecyMap(path);
         createHeaderMap();
         filterDataByThresholdAndAddTOfpTree();
+    }
+
+    FPTree(List<List<Node>> conditional, int threshold){
+
     }
 
 
@@ -102,15 +106,15 @@ public class FPTree{
      */
     private void createHeaderMap(){
         header = new HashMap<>();
-        headerOrder = new LinkedList<>();
+        headerOrdered = new LinkedList<>();
         HeaderNode headerNode;
         for(Map.Entry<Integer, Integer> entry : frequency.entrySet())
             if(entry.getValue() >= threshold){
                 headerNode = new HeaderNode(entry.getKey(), entry.getValue());
                 header.put(entry.getKey(), headerNode);
-                headerOrder.add(headerNode);
+                headerOrdered.add(headerNode);
             }
-        Collections.sort(headerOrder);
+        Collections.sort(headerOrdered);
         System.out.println("HEADER MAP CREATION TIME:" + (System.currentTimeMillis() - start));
     }
 
@@ -120,10 +124,9 @@ public class FPTree{
     private void filterDataByThresholdAndAddTOfpTree(){
         for(int[] line : file){
             List<Pair> list = new LinkedList<>();
-            for(int i = 0; i < line.length; ++i){
-                int temp = line[i];
-                int freq = frequency.get(temp);
-                if(freq >= threshold) list.add(new Pair(temp, freq));
+            for(int i : line){
+                int freq = frequency.get(i);
+                if(freq >= threshold) list.add(new Pair(i, freq));
             }
             Collections.sort(list);
 
@@ -162,7 +165,7 @@ public class FPTree{
      * Print tree using parent pointer
      */
     void printTree(){
-        for(HeaderNode node : headerOrder){
+        for(HeaderNode node : headerOrdered){
             System.out.println(node.toString());
             Node tempTail = node.getLast();
             List<Node> listToPrint;
@@ -187,7 +190,7 @@ public class FPTree{
      * FP-Tree node
      */
     @ToString(exclude = {"parent", "prevSelf", "children"})
-    private class Node{
+    class Node{
         /**
          * Node id
          */
@@ -279,8 +282,8 @@ public class FPTree{
 
         @Override
         public int compareTo(HeaderNode o){
-            if(o.count == this.count) return o.id - this.id;
-            else return o.count - this.count;
+            if(o.count == this.count) return this.id - o.id;
+            else return this.count - o.count;
         }
     }
 

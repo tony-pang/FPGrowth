@@ -15,11 +15,11 @@ public class FPTreeTest{
 //        System.out.println("Time : " + timeDifference(startTime));
 
         fpTree.printFrequencies();
-        System.out.println(fpTree.getHeaderOrder());
+        System.out.println(fpTree.getHeaderOrdered());
         System.out.println("Time : " + timeDifference(startTime));
 
         fpTree.printTree();
-        System.out.println(fpTree.getHeaderOrder().toString());
+        System.out.println(fpTree.getHeaderOrdered().toString());
 //
 //        fpTree.printTree2();
 //        System.out.println("Time : " + timeDifference(startTime));
