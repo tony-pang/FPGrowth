@@ -37,7 +37,7 @@ public class FPTree{
      * constructor load from file, determine the minimum support
      * @param path path
      */
-    FPTree(String path){
+    private FPTree(String path){
         readFileAndCreateFrequencyMap(path);
         createHeaderMap();
         filterDataByThresholdAndAddToFpTree();
