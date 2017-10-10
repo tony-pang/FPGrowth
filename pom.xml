@@ -10,17 +10,7 @@
 
     <properties>
         <maven-compiler-plugin.source>1.8</maven-compiler-plugin.source>
-        <lombok.version>1.16.18</lombok.version>
-        <junit.version>4.12</junit.version>
-        <log4j-api.version>2.9.1</log4j-api.version>
     </properties>
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-        </dependency>
-    </dependencies>
     <build>
         <plugins>
             <plugin>

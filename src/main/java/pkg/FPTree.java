@@ -63,11 +63,11 @@ public class FPTree{
         System.out.println("Time : " + (System.currentTimeMillis() - startTime));
     }
 
+
     /**
      * @param path path
      */
     private void readFileAndCreateFrequencyMap(String path){
-
         ClassLoader classLoader = getClass().getClassLoader();
         try(FileReader fileReader = new FileReader(new File(classLoader.getResource(path).getFile()))){
             try(BufferedReader bufferedReader = new BufferedReader(fileReader)){
@@ -89,8 +89,7 @@ public class FPTree{
                                 temp = Integer.parseInt(commaDelim[i]);
                                 parsedToInt[i - 1] = temp;
                                 //increaseCounter of frequency list
-                                if(frequency.containsKey(temp)) frequency.put(temp, frequency.get(temp) + 1);
-                                else frequency.put(temp, 1);
+                                frequency.put(temp, frequency.getOrDefault(temp, 0)+1);
                             }
                             file.add(parsedToInt);//Save to raw : file
                         }
@@ -249,8 +248,7 @@ public class FPTree{
                     tempParent = tempParent.parent;
                 }
                 for(int i = listToPrint.size() - 1; i >= 0; --i)
-                    System.out.print(listToPrint.get(i).id + "(" + listToPrint.get(i).count + ")"
-                    );
+                    System.out.print(listToPrint.get(i).id + "(" + listToPrint.get(i).count + ")");
                 tempTail = tempTail.prevSelf;
                 System.out.println();
             }
@@ -371,8 +369,8 @@ public class FPTree{
 
         @Override
         public int compareTo(Pair o){
-            if(o.freq == this.freq) return this.name - o.name;
-            else return o.freq - this.freq;
+            if(o.freq != this.freq) return o.freq - this.freq;
+            else return this.name - o.name;
         }
     }
 
@@ -391,7 +389,7 @@ public class FPTree{
         }
 
         public String toString(){
-            return a + "-" + b + "->" + freq + "\n";
+            return "\n" + a + "-" + b + "->" + freq;
         }
 
         @Override
