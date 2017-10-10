@@ -1,13 +1,11 @@
 package pkg;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 @SuppressWarnings("unused")
-public class FPTree{
+public class FPTree implements Runnable{
+    private final String path;
     /**
      * ROOT node
      */
@@ -38,13 +36,11 @@ public class FPTree{
      * @param path path
      */
     private FPTree(String path){
-        readFileAndCreateFrequencyMap(path);
-        createHeaderMap();
-        filterDataByThresholdAndAddToFpTree();
-        processData();
+        this.path = path;
     }
 
     private FPTree(List<List<Pair>> conditionalBranch, int threshold, Map<Integer, Integer> frequency){
+        this.path = "";
         this.conditionalBranch = conditionalBranch;
         this.frequency = frequency;
         this.threshold = threshold;
@@ -53,14 +49,37 @@ public class FPTree{
         addToFpTree();
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws InterruptedException{
         String path1 = "Sample_1.txt";
         String path2 = "Sample_2.txt";
         String path3 = "Sample_3.txt";
         String path4 = "test.tsv";
         long startTime = System.currentTimeMillis();
-        FPTree fpTree = new FPTree(path3);
-        System.out.println("Time : " + (System.currentTimeMillis() - startTime));
+        FPTree tree1 = new FPTree(path1);
+        FPTree tree2 = new FPTree(path2);
+        FPTree tree3 = new FPTree(path3);
+        Thread t1 = new Thread(tree1);
+        Thread t2 = new Thread(tree2);
+        Thread t3 = new Thread(tree3);
+        t1.start();
+        t2.start();
+        t3.start();
+        t1.join();
+        t2.join();
+        t3.join();
+        System.out.println("Total running Time : " + (System.currentTimeMillis() - startTime));
+        System.out.println(tree1.frequentPairList);
+        System.out.println(tree2.frequentPairList);
+        System.out.println(tree3.frequentPairList);
+
+    }
+
+    @Override
+    public void run(){
+        readFileAndCreateFrequencyMap(path);
+        createHeaderMap();
+        filterDataByThresholdAndAddToFpTree();
+        processData();
     }
 
 
@@ -157,8 +176,9 @@ public class FPTree{
             }
             buildConditionalFPTree(headerNode.id, headerNode.count);
         }
-        Collections.sort(frequentPairList);
-        System.out.println(frequentPairList);
+//        Collections.sort(frequentPairList);
+//        System.out.println(frequentPairList);
+        outputToFile();
     }
 
     private void buildConditionalFPTree(int id, int count){
@@ -193,7 +213,6 @@ public class FPTree{
         }
     }
 
-
     private List<FrequentPair> returnFrequentPair(int id, int idCount){
         List<FrequentPair> ret = new LinkedList<>();
         FrequentPair pair;
@@ -206,6 +225,16 @@ public class FPTree{
             }
         }
         return ret;
+    }
+
+    private void outputToFile(){
+        try{
+            PrintWriter writer = new PrintWriter("output-" + path, "UTF-8");
+            writer.println(frequentPairList);
+            writer.close();
+        }catch(FileNotFoundException | UnsupportedEncodingException e){
+            e.printStackTrace();
+        }
     }
     /* -----------------------------------------------------------------------------------------------------------------
      * Print functions
@@ -231,6 +260,11 @@ public class FPTree{
             System.out.println(set.getKey() + "," + set.getValue());
     }
 
+    public List<FrequentPair> getFrequentPairList(){
+        Collections.sort(frequentPairList);
+        return frequentPairList;
+    }
+
     /**
      * Print tree using parent pointer
      */
@@ -254,6 +288,7 @@ public class FPTree{
             }
         }
     }
+
 
     /**
      * FP-Tree node
@@ -389,7 +424,8 @@ public class FPTree{
         }
 
         public String toString(){
-            return "\n" + a + "-" + b + "->" + freq;
+            return "{" + a + "," + b + "}";
+//            return "\n{" + a + "-" + b + "}->" + freq;
         }
 
         @Override
